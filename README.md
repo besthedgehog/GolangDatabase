@@ -3005,6 +3005,24 @@ func main() {
 // Point(x=10, y=20)
 ```
 
+
+Если реалиpовать метод GoString(), это можно будет использовать в форматированном выводе в %#v
+
+
+```go
+
+type Point struct{ X, Y int }
+func (p Point) String() string   { return fmt.Sprintf("(%d,%d)", p.X, p.Y) }
+func (p Point) GoString() string { return fmt.Sprintf("Point{X:%d, Y:%d}", p.X, p.Y) }
+
+p := Point{2,3}
+fmt.Println(p)           // (2,3)
+fmt.Printf("%#v\n", p)   // Point{X:2, Y:3}
+```
+
+
+
+
 # Без паники! (нет)
 
 Как вызывать панику? (Звучит забавно)
