@@ -6,6 +6,7 @@
   - [Как узнать тип переменной?](#как-узнать-тип-переменной)
   - [Циклы](#циклы)
   - [Switch](#switch)
+  - [Считывание значений из stdin](#cчитывание-значений-из-stdin)
   - [Импорты](#импорты)
   - [Go mod init](#go-mod-init)
   - [return](#return)
@@ -287,6 +288,39 @@ return nil // вернуть nil
 ```
 
 Разница есть!
+
+# Считывание значений из stdin
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	var x int64
+	var y float32
+
+	fmt.Scanf("%v %v", &x, &y)
+	//fmt.Scanf("%d %f", &x, &y)
+
+	fmt.Printf("x = %v, type %T; y = %v\n, type %T", x, x, y, y)
+}
+```
+
+Есть ещё сканер Scanf, который позволяет задать более гибкие условия
+
+```go
+var a, b int
+_, err := fmt.Scanf("%d,%d", &a, &b)
+// Ввод: "12,34"
+```
+
+```go
+var host string
+var port int
+fmt.Scanf("host=%s port=%d", &host, &port)
+// Ввод: "host=localhost port=5432"
+```
 
 # Импорты
 
