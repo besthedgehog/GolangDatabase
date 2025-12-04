@@ -3078,6 +3078,25 @@ var c AliasInt
 a = c         // ок: это тот же тип int (type alias)
 ```
 
+## Измерение времени кода
+
+```
+// Utility
+func TrackTime(pre time.Time) time.Duration {
+  elapsed := time.Since(pre)
+  fmt.Println("elapsed:", elapsed)
+
+  return elapsed
+}
+
+func TestTrackTime(t *testing.T) {
+ defer TrackTime(time.Now()) // <--- THIS
+
+ time.Sleep(500 * time.Millisecond)
+}
+
+// elapsed: 501.11125ms
+```
 
 # Без паники! (нет)
 
