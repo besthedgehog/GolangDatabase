@@ -1,5 +1,123 @@
 # Паттерны проектирования
 
+## Woker Pool
+
+```go
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"sync"
+	"time"
+)
+
+// Задача: URL, который нужно проверить
+type Job struct {
+	URL string
+}
+
+// Результат: Что мы узнали об этом сайте
+type Result struct {
+	URL        string
+	StatusCode int
+	Duration   time.Duration // Как долго грузился
+	Err        error         // Если сайт вообще недоступен
+}
+
+// Воркер: "Инспектор сайтов"
+func worker(id int, jobs <-chan Job, results chan<- Result, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	// Создаем HTTP клиент с таймаутом (важно для реальных задач!)
+	client := http.Client{
+		Timeout: 2 * time.Second,
+	}
+
+	for job := range jobs {
+		// fmt.Printf("Воркер %d проверяет %s\n", id, job.URL) // (Опционально: логирование)
+
+		start := time.Now()
+		resp, err := client.Get(job.URL)
+		duration := time.Since(start)
+
+		if err != nil {
+			// Если ошибка (например, нет интернета или домен не существует)
+			results <- Result{
+				URL: job.URL,
+				Err: err,
+			}
+			continue
+		}
+
+		// Если успех
+		results <- Result{
+			URL:        job.URL,
+			StatusCode: resp.StatusCode,
+			Duration:   duration,
+			Err:        nil,
+		}
+		resp.Body.Close() // Не забываем закрывать тело ответа!
+	}
+}
+
+func main() {
+	// Список сайтов для проверки (можно представить, что их тут 1000)
+	urls := []string{
+		"https://google.com",
+		"https://github.com",
+		"https://golang.org",
+		"https://stackoverflow.com",
+		"https://non-existent-website-blabla.com", // Специально сломанный
+		"https://microsoft.com",
+	}
+
+	const numWorkers = 3 // 3 инспектора
+
+	// Каналы
+	jobs := make(chan Job, len(urls))
+	results := make(chan Result, len(urls))
+	var wg sync.WaitGroup
+
+	// 1. Запуск воркеров
+	for w := 1; w <= numWorkers; w++ {
+		wg.Add(1)
+		go worker(w, jobs, results, &wg)
+	}
+
+	// 2. Раздача задач
+	for _, url := range urls {
+		jobs <- Job{URL: url}
+	}
+	close(jobs) // Задач больше не будет
+
+	// 3. Фоновый "ждун" (чтобы не было дедлока!)
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// 4. Сбор и анализ результатов (Main работает тут)
+	var successCount, failCount int
+
+	fmt.Println("--- Начало проверки ---")
+
+	// Читаем, пока канал results не закроется
+	for res := range results {
+		if res.Err != nil {
+			fmt.Printf("[FAIL] %s | Ошибка: %v\n", res.URL, res.Err)
+			failCount++
+		} else {
+			fmt.Printf("[OK]   %s | Код: %d | Время: %v\n", res.URL, res.StatusCode, res.Duration)
+			successCount++
+		}
+	}
+
+	fmt.Println("--- Итоги ---")
+	fmt.Printf("Успешно: %d, Ошибок: %d\n", successCount, failCount)
+}
+```
+
 ## Fan in Fan out
 
 ```go
