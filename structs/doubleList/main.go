@@ -1,6 +1,8 @@
 package main
 
-import "errors"
+import (
+	"errors"
+)
 
 // Node[T] узел в двусвязном списке
 type Node[T any] struct {
@@ -69,7 +71,7 @@ func (dl *DoublyLinkedList[T]) PushHead(data T) error {
 
 // Insert добавляет элемент по индексу
 func (dl *DoublyLinkedList[T]) Insert(index int, data T) error {
-	if index < 0 || index >= dl.length {
+	if index < 0 || index > dl.length {
 		return errors.New("index out the range")
 	}
 
@@ -77,18 +79,35 @@ func (dl *DoublyLinkedList[T]) Insert(index int, data T) error {
 		return dl.PushHead(data)
 	}
 
-	if index == dl.length-1 {
+	if index == dl.length {
 		return dl.PushTail(data)
 	}
 
 	node := dl.head
-	for it := 0; it < index; it++ {
+	// change using range over int
+	// for it := 0; it < index; it++ {
+	// 	node = node.nextPtr
+	// }
+
+	for range index {
 		node = node.nextPtr
 	}
 
+	// 0                    1               2
+	// [node.prevPrt] <-> [node] <-> [node.nextPrt]
+	// Insert(1)
+	//
+	// 			   [insertNode]
+	//                  |
+	// 					|
+	// [node.prevPrt] <-> [node] <-> [node.nextPrt]
+	//
+
 	insertNode := NewNode(data)
 	insertNode.nextPtr = node
+
 	node.prevPtr.nextPtr = insertNode
+
 	insertNode.prevPtr = node.prevPtr
 	node.prevPtr = insertNode
 

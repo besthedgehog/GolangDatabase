@@ -37,3 +37,18 @@ func TestPushHead(t *testing.T) {
 	assert.Equal(t, list.head.data, 17)
 	assert.Equal(t, list.tail.data, 10)
 }
+
+func TestInsert(t *testing.T) {
+	list := NewDoublyLinkedList[string]()
+
+	list.PushTail("A")
+	list.PushTail("B")
+	assert.Equal(t, list.head.data, "A")
+	assert.Equal(t, list.tail.data, "B")
+
+	list.Insert(1, "X")
+
+	assert.Equal(t, list.head.data, "A")
+	assert.Equal(t, list.head.nextPtr.data, "X")
+	assert.Equal(t, list.head.nextPtr.nextPtr.data, "B")
+}
