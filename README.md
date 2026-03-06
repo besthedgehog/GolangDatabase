@@ -3324,6 +3324,57 @@ func TestTrackTime(t *testing.T) {
 // elapsed: 501.11125ms
 ```
 
+## Итераторы 
+
+Начиная с Go 1.23 появились итераторы
+
+```go
+package main
+
+import (
+	"fmt"
+	"iter"
+)
+
+func countTo(s int) iter.Seq[int] {
+	return func(yield func(int) bool) {
+		for i := 0; i <= s; i++ {
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
+func countTo2(s int, divider int) iter.Seq2[int, bool] {
+	// yield обязан принимать те же типы аргументов,
+	// что и iter.Seq[A, B]
+	return func(yield func(int, bool) bool) {
+		for i := 0; i <= s; i++ {
+			ok := i%divider != 0
+			// Те же аргументы iter.Seq[A, B]
+			if !yield(i, ok) {
+				return
+			}
+		}
+	}
+}
+
+func main() {
+	for v := range countTo(5) {
+		fmt.Println(v)
+	}
+
+	fmt.Println()
+
+	for i, ok := range countTo2(7, 2) {
+		fmt.Println(i, ok)
+	}
+}
+```
+
+
+
 # Без паники! (нет)
 
 Как вызывать панику? (Звучит забавно)
