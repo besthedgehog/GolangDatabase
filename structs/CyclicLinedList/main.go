@@ -32,12 +32,10 @@ func NewCyclicLinkedList[T any]() *CyclicLinkedList[T] {
 	return &CyclicLinkedList[T]{length: 0, head: nil}
 }
 
-// НАПИСАТЬ ТЕСТ
 func (cl *CyclicLinkedList[T]) Size() int {
 	return cl.length
 }
 
-// НАПИСАТЬ ТЕСТ
 func (cl *CyclicLinkedList[T]) IsEmpty() bool {
 	return cl.length == 0
 }
@@ -48,9 +46,9 @@ func (cl *CyclicLinkedList[T]) Add(data T) {
 	// newNode уже возвращает указатель на ноду
 	B := newNode(data)
 
-	if cl.head == nil {
+	if cl.IsEmpty() {
+		// Новая нода теперь вершина
 		cl.head = B
-
 		{
 			B.nextPtr = B
 			B.prevPtr = B
@@ -96,10 +94,28 @@ func (cl *CyclicLinkedList[T]) Add(data T) {
 	// A.nextPtr // не меняется
 	A.prevPtr = B
 
-	cl.head = C
+	cl.head = B
 	cl.length++
 	return
+}
 
-	/// Поправить!
-	// ЧТо становится головой после вставки?
+// ForEach применяет функцию fn к каждом элементу кольцевого списка
+func (cl *CyclicLinkedList[T]) ForEach(fn func(data T)) {
+	node := cl.head
+
+	fn(node.data)
+	for range cl.length - 1 {
+		node = node.nextPtr
+		fn(node.data)
+	}
+}
+
+func (cl *CyclicLinkedList[T]) ReverseForEach(fn func(data T)) {
+	node := cl.head
+
+	fn(node.data)
+	for range cl.length - 1 {
+		node = node.prevPtr
+		fn(node.data)
+	}
 }

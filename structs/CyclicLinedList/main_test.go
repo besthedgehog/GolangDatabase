@@ -21,3 +21,37 @@ func TestNewCyclicLinkedList(t *testing.T) {
 	assert.Equal(t, 0, newList.length)
 	assert.Nil(t, newList.head)
 }
+
+func TestSize(t *testing.T) {
+	cycledList := NewCyclicLinkedList[int]()
+
+	expSize := 0
+	size := cycledList.Size()
+	assert.Equal(t, expSize, size)
+
+	cycledList.Add(7)
+	expSize = 1
+	size = cycledList.Size()
+	assert.Equal(t, expSize, size)
+}
+
+func TestEmpty(t *testing.T) {
+	cycledList := NewCyclicLinkedList[int]()
+
+	assert.True(t, cycledList.IsEmpty())
+
+	cycledList.Add(7)
+
+	assert.False(t, cycledList.IsEmpty())
+}
+
+func TestForEach(t *testing.T) {
+	cycledList := NewCyclicLinkedList[int]()
+
+	var called bool = false
+	cycledList.ForEach(func(data int) {
+		called = true
+	})
+
+	assert.False(t, called, "should not call fn on empty list")
+}
