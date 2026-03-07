@@ -54,4 +54,17 @@ func TestForEach(t *testing.T) {
 	})
 
 	assert.False(t, called, "should not call fn on empty list")
+
+	for i := range 3 {
+		cycledList.Add(i)
+	}
+
+	resultList := []int{}
+	cycledList.ForEach(func(data int) {
+		resultList = append(resultList, data)
+	})
+
+	// fmt.Println(resultList)
+
+	assert.Equal(t, resultList, []int{2, 1, 0})
 }
