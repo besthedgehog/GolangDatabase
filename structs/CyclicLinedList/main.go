@@ -102,6 +102,9 @@ func (cl *CyclicLinkedList[T]) Add(data T) {
 // ForEach применяет функцию fn к каждом элементу кольцевого списка
 func (cl *CyclicLinkedList[T]) ForEach(fn func(data T)) {
 	node := cl.head
+	if node == nil {
+		return
+	}
 
 	fn(node.data)
 	for range cl.length - 1 {
@@ -112,6 +115,9 @@ func (cl *CyclicLinkedList[T]) ForEach(fn func(data T)) {
 
 func (cl *CyclicLinkedList[T]) ReverseForEach(fn func(data T)) {
 	node := cl.head
+	if node == nil {
+		return
+	}
 
 	fn(node.data)
 	for range cl.length - 1 {
