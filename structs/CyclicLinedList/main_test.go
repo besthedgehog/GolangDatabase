@@ -68,3 +68,28 @@ func TestForEach(t *testing.T) {
 
 	assert.Equal(t, resultList, []int{2, 1, 0})
 }
+
+/////
+
+func TestReverseForEach(t *testing.T) {
+	cycledList := NewCyclicLinkedList[string]()
+
+	var called bool = false
+
+	cycledList.ReverseForEach(func(data string) {
+		called = true
+	})
+
+	assert.False(t, called, "should not call fn on empty list")
+
+	cycledList.Add("A")
+	cycledList.Add("B")
+	cycledList.Add("C")
+
+	resultList := []string{}
+	cycledList.ReverseForEach(func(data string) {
+		resultList = append(resultList, data)
+	})
+
+	assert.Equal(t, []string{"C", "A", "B"}, resultList)
+}
