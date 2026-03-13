@@ -93,3 +93,91 @@ func TestReverseForEach(t *testing.T) {
 
 	assert.Equal(t, []string{"C", "A", "B"}, resultList)
 }
+
+func TestPrintList(t *testing.T) {
+	cycledList := NewCyclicLinkedList[int]()
+
+	cycledList.Add(1)
+	cycledList.Add(2)
+	cycledList.Add(3)
+
+	expectedList := []int{3, 2, 1}
+	actualList := cycledList.PrintList()
+	assert.Equal(t, expectedList, actualList)
+}
+
+func TestRotate(t *testing.T) {
+
+	t.Run("Rotate for 360", func(t *testing.T) {
+
+		// create new cycledList
+		cycledList := NewCyclicLinkedList[int]()
+
+		// fullfill it
+		for i := range 3 {
+			cycledList.Add(i)
+		}
+
+		expectedList := []int{2, 1, 0}
+		realList := cycledList.PrintList()
+		assert.Equal(t, expectedList, realList)
+		assert.Equal(t, 2, cycledList.head.data)
+
+		// change nothing
+		cycledList.Rotate(0)
+		assert.Equal(t, expectedList, realList)
+		assert.Equal(t, 2, cycledList.head.data)
+
+		// change nothing
+		cycledList.Rotate(3)
+		assert.Equal(t, expectedList, realList)
+		assert.Equal(t, 2, cycledList.head.data)
+
+	})
+
+	t.Run("Rotate for 1", func(t *testing.T) {
+		// create new cycledList
+		cycledList := NewCyclicLinkedList[int]()
+
+		// fullfill it
+		for i := range 3 {
+			cycledList.Add(i)
+		}
+
+		cycledList.Rotate(1)
+		expectedList := []int{1, 0, 2}
+		realList := cycledList.PrintList()
+		assert.Equal(t, 1, cycledList.head.data)
+		assert.Equal(t, expectedList, realList)
+
+		cycledList.Rotate(2)
+		expectedList = []int{2, 1, 0}
+		realList = cycledList.PrintList()
+		assert.Equal(t, 2, cycledList.head.data)
+		assert.Equal(t, expectedList, realList)
+	})
+
+	t.Run("rotate for -1", func(t *testing.T) {
+		// create new cycledList
+		cycledList := NewCyclicLinkedList[int]()
+
+		// fullfill it
+		for i := range 3 {
+			cycledList.Add(i)
+		}
+
+		expectedList := []int{2, 1, 0}
+		realList := cycledList.PrintList()
+		assert.Equal(t, 2, cycledList.head.data)
+		assert.Equal(t, expectedList, realList)
+
+		cycledList.Rotate(-1)
+
+		expectedList = []int{0, 2, 1}
+		realList = cycledList.PrintList()
+		assert.Equal(t, 0, cycledList.head.data)
+		assert.Equal(t, expectedList, realList)
+
+	})
+
+}

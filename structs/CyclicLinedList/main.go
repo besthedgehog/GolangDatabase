@@ -125,3 +125,42 @@ func (cl *CyclicLinkedList[T]) ReverseForEach(fn func(data T)) {
 		fn(node.data)
 	}
 }
+
+func (cl *CyclicLinkedList[T]) PrintList() []T {
+	node := cl.head
+	if node == nil {
+		return nil
+	}
+
+	resultList := []T{}
+	resultList = append(resultList, node.data)
+	for range cl.length - 1 {
+		node = node.nextPtr
+		resultList = append(resultList, node.data)
+	}
+
+	return resultList
+}
+
+// Rotate меняет положение вершины
+func (cl *CyclicLinkedList[T]) Rotate(delta int) {
+
+	// Вращать нечего
+	if cl.length <= 1 {
+		return
+	}
+
+	// сократим лишние круги
+	if cl.length != 0 {
+		delta %= cl.length
+	}
+
+	// Поёдм в обратную сторону
+	if delta < 0 {
+		delta = cl.length + delta
+	}
+
+	for range delta {
+		cl.head = cl.head.nextPtr
+	}
+}
