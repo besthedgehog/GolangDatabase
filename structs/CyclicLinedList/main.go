@@ -1,5 +1,7 @@
 package main
 
+import "errors"
+
 // Node узел в кольцевом списке
 type Node[T any] struct {
 	data    T
@@ -163,4 +165,40 @@ func (cl *CyclicLinkedList[T]) Rotate(delta int) {
 	for range delta {
 		cl.head = cl.head.nextPtr
 	}
+}
+
+// Remove удаляет элемент из гловы
+func (cl *CyclicLinkedList[T]) Remove() bool {
+	if cl.IsEmpty() {
+		return false
+	}
+	currentNode := cl.head
+	nextNoda := currentNode.nextPtr
+	prevNode := currentNode.prevPtr
+
+	if cl.length == 1 {
+		cl.head = nil
+	} else {
+		// Теперь следующая нода – голова
+		cl.head = nextNoda
+		nextNoda.prevPtr = prevNode
+		prevNode.nextPtr = nextNoda
+	}
+	cl.length--
+	return true
+}
+
+func (cl *CyclicLinkedList[T]) RemoveAll() bool {
+	for cl.Remove() {
+	}
+	return true
+}
+
+func (cl *CyclicLinkedList[T]) Value() (T, error) {
+	if cl.IsEmpty() {
+		return *new(T), errors.New("list is empty")
+	}
+
+	return cl.head.data, nil
+
 }
