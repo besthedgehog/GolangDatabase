@@ -56,6 +56,13 @@ func TestPutAndGet(t *testing.T) {
 
 	t.Run("Update existing element", func(t *testing.T) {
 		ht.Put("apple", 200)
+		val, err := ht.Get("apple")
+		if err != nil {
+			t.Errorf("Error should be nil, but err = %v", err)
+		}
+		if val != 200 {
+			t.Errorf("val shoul be equal to 200, but val = %v", val)
+		}
 	})
 
 	t.Run("Force collision", func(t *testing.T) {
@@ -71,6 +78,16 @@ func TestPutAndGet(t *testing.T) {
 
 		if errBanana != nil || errCherry != nil {
 			t.Errorf("Collision handling failed!")
+		}
+	})
+
+	t.Run("Get from empty bucket", func(t *testing.T) {
+		hm, _ := NewHashTableWithCapacity[int, string](2)
+
+		_, err := hm.Get(0)
+
+		if err == nil || err.Error() != "key not found" {
+			t.Errorf("expected 'key not found' error from empty bucket")
 		}
 	})
 }
@@ -120,6 +137,21 @@ func TestRemove(t *testing.T) {
 		err := ht.Remove(99)
 		if err == nil {
 			t.Errorf("Expected error when removing non-existing key")
+		}
+	})
+}
+
+func TestHashTable_EdgeCases(t *testing.T) {
+	t.Run("Zero capacity", func(t *testing.T) {
+		ht, err := NewHashTableWithCapacity[string, int](0)
+		if err == nil {
+			t.Fatal("expected error for zero capacity, got nil")
+		}
+		if err.Error() != "capacity cannot be zero" {
+			t.Errorf("wrong error message: %v", err)
+		}
+		if ht != nil {
+			t.Error("hashtable should be nil on error")
 		}
 	})
 }

@@ -227,3 +227,34 @@ func (hm *HashTable[K, V]) Remove(key K) error {
 	}
 	return errors.New("key not found")
 }
+
+func (hm *HashTable[K, V]) Keys() []K {
+	keys := make([]K, 0, hm.size)
+	for _, head := range hm.table {
+		// Если в ячейке есть цепочка
+		curr := head
+		for curr != nil {
+			keys = append(keys, curr.key)
+			curr = curr.nextPtr // Идём вглубь коллизии
+		}
+	}
+	return keys
+}
+
+func (hm *HashTable[K, V]) Values() []V {
+	values := make([]V, 0, hm.size)
+	for _, head := range hm.table {
+		curr := head
+		for curr != nil {
+			values = append(values, curr.value)
+			curr = curr.nextPtr
+		}
+	}
+	return values
+}
+
+// Clear очищает всю нашу хеш-таблицу
+func (hm *HashTable[K, V]) Clear() {
+	hm.table = make([]*node[K, V], hm.capacity)
+	hm.size = 0
+}
