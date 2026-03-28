@@ -90,6 +90,40 @@ func TestPutAndGet(t *testing.T) {
 			t.Errorf("expected 'key not found' error from empty bucket")
 		}
 	})
+
+	t.Run("Not found in existing chin", func(t *testing.T) {
+		hm, _ := NewHashTableWithCapacity[int, string](2)
+
+		hm.Put(3, "hey")
+		hm.Put(5, "hoop")
+		hm.Put(7, "lalaley")
+
+		// Ключ, который точно есть в таблице
+		exitingKey := 3
+		// Считаем его хеш
+		targetIndex := hm.hash(exitingKey)
+
+		// Ищем новый ключ, который даст такой же индекс
+		var missingKey int
+		for i := 100; i < 10000; i++ {
+			if hm.hash(i) == targetIndex {
+				missingKey = i
+				break
+			}
+		}
+
+		if missingKey == 0 {
+			t.Fatalf("No collision found after 10000 attempts")
+		}
+
+		// Теперь мы точно уверены, missingKey пойдёт в непустую ячейку,
+		// но самого ключа там нет
+		_, err := hm.Get(missingKey)
+
+		if err == nil || err.Error() != "key not found" {
+			t.Errorf("expected 'key not found', got: %v", err)
+		}
+	})
 }
 
 func TestContains(t *testing.T) {
@@ -154,4 +188,50 @@ func TestHashTable_EdgeCases(t *testing.T) {
 			t.Error("hashtable should be nil on error")
 		}
 	})
+}
+
+func TestKeysValues(t *testing.T) {
+	ht, _ := NewHashTableWithCapacity[string, int](4)
+	ht.Put("one", 1)
+	ht.Put("two", 2)
+	ht.Put("three", 3)
+
+	t.Run("Keys and Values", func(t *testing.T) {
+		keys := ht.Keys()
+		values := ht.Values()
+
+		if len(keys) != 3 {
+			t.Errorf("expected 3 keys, got %d", len(keys))
+		}
+		if len(values) != 3 {
+			t.Errorf("expected 3 values, got %d", len(values))
+		}
+
+		// Используем map для проверки соответствия
+		keyMap := make(map[string]int)
+		for _, k := range keys {
+			keyMap[k], _ = ht.Get(k)
+		}
+
+		if keyMap["one"] != 1 || keyMap["two"] != 2 || keyMap["three"] != 3 {
+			t.Errorf("missing some keys or values")
+		}
+	})
+}
+
+func TestClear(t *testing.T) {
+	ht := NewHashTable[int, int]()
+	ht.Clear()
+
+	ht.Put(1, 2)
+	ht.Put(3, 4)
+	ht.Clear()
+
+	if ht.size != 0 {
+		t.Errorf("size should be 0 after Clear, got %d", ht.size)
+	}
+
+	if len(ht.Keys()) != 0 || len(ht.Values()) != 0 {
+		t.Errorf("Keys() and Values() should be empty after Clear")
+	}
 }
