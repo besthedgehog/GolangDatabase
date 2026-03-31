@@ -235,3 +235,40 @@ func TestClear(t *testing.T) {
 		t.Errorf("Keys() and Values() should be empty after Clear")
 	}
 }
+
+func TestCapacity(t *testing.T) {
+	hm, _ := NewHashTableWithCapacity[int, int](4)
+
+	if hm.capacity != 4 {
+		t.Errorf("wrong capacity, expected 4 but hm.capctity = %v", hm.capacity)
+	}
+
+	if hm.Capacity() != hm.capacity {
+		t.Errorf("hm.Capacity = %v, but hm.capactiy = %v", hm.Capacity(), hm.capacity)
+	}
+}
+
+func TestForEach(t *testing.T) {
+	ht, _ := NewHashTableWithCapacity[string, int](4)
+
+	ht.Put("A", 10)
+	ht.Put("B", 20)
+	ht.Put("C", 30)
+
+	// Мапа для сбора результатов
+	visited := make(map[string]int)
+	counter := 0
+
+	ht.ForEach(func(key string, value int) {
+		visited[key] = value
+		counter++
+	})
+
+	if counter != 3 {
+		t.Errorf("Expected to visit 3 elements, visited %d", counter)
+	}
+
+	if visited["A"] != 10 || visited["B"] != 20 || visited["C"] != 30 {
+		t.Errorf("ForEach collected incorrect data: %v", visited)
+	}
+}

@@ -258,3 +258,19 @@ func (hm *HashTable[K, V]) Clear() {
 	hm.table = make([]*node[K, V], hm.capacity)
 	hm.size = 0
 }
+
+// Мы передаём сюда функцию, которая будет вызвана для
+// каждого узла
+func (hm *HashTable[K, V]) ForEach(fn func(key K, value V)) {
+	if hm.size == 0 {
+		return
+	}
+	for _, bigNode := range hm.table {
+		if bigNode != nil {
+			for currentNode := bigNode; currentNode != nil; {
+				fn(currentNode.key, currentNode.value)
+				currentNode = currentNode.nextPtr
+			}
+		}
+	}
+}
