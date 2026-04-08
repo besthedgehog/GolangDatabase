@@ -1,0 +1,209 @@
+package main
+
+import (
+	"fmt"
+	"hash/maphash"
+)
+
+const (
+	groupSize = 8
+	empty     = 0x80 // 10000000
+	deleted   = 0xFE // 11111110
+)
+
+// Group теперь использует дженерики K (ключ) и V (значение)
+type Group[K comparable, V any] struct {
+	ctrl [groupSize]uint8
+	keys [groupSize]K
+	vals [groupSize]V
+}
+
+type SwissMap[K comparable, V any] struct {
+	groups []Group[K, V]
+	seed   maphash.Seed
+}
+
+func NewSwissMap[K comparable, V any](numGroups int) *SwissMap[K, V] {
+	m := &SwissMap[K, V]{
+		groups: make([]Group[K, V], numGroups),
+		seed:   maphash.MakeSeed(),
+	}
+	for i := range m.groups {
+		for j := range m.groups[i].ctrl {
+			m.groups[i].ctrl[j] = empty
+		}
+	}
+	return m
+}
+
+// hash генерирует 64-битный хэш.
+// Внимание: для простоты кода K конвертируется в строку.
+// В реальном Go под капотом используется runtime-хэширование типов.
+func (m *SwissMap[K, V]) hash(key K) (uint64, uint8) {
+	var h maphash.Hash
+	h.SetSeed(m.seed)
+	h.WriteString(fmt.Sprint(key))
+	hash64 := h.Sum64()
+	h1 := hash64 >> 7
+	h2 := uint8(hash64 & 0x7F)
+	return h1, h2
+}
+
+func (m *SwissMap[K, V]) Put(key K, val V) {
+	h1, h2 := m.hash(key)
+	groupIdx := h1 % uint64(len(m.groups))
+
+	// Запоминаем первый встреченный tombstone, чтобы переиспользовать его,
+	// если ключа в мапе точно нет.
+	var targetGroup *Group[K, V]
+	var targetIdx int = -1
+
+	for {
+		g := &m.groups[groupIdx]
+		for i, ctrlByte := range g.ctrl {
+			// 1. Ключ уже есть — обновляем значение
+			if ctrlByte == h2 && g.keys[i] == key {
+				g.vals[i] = val
+				return
+			}
+			// 2. Нашли пустое место (и до этого не встречали tombstone)
+			if ctrlByte == empty {
+				if targetIdx == -1 {
+					targetGroup = g
+					targetIdx = i
+				}
+				// Вставляем данные и уходим
+				targetGroup.ctrl[targetIdx] = h2
+				targetGroup.keys[targetIdx] = key
+				targetGroup.vals[targetIdx] = val
+				return
+			}
+			// 3. Запоминаем первый tombstone, но ПРОДОЛЖАЕМ ИСКАТЬ,
+			// вдруг наш ключ лежит дальше по цепочке!
+			if ctrlByte == deleted && targetIdx == -1 {
+				targetGroup = g
+				targetIdx = i
+			}
+		}
+		groupIdx = (groupIdx + 1) % uint64(len(m.groups))
+	}
+}
+
+func (m *SwissMap[K, V]) Get(key K) (V, bool) {
+	h1, h2 := m.hash(key)
+	groupIdx := h1 % uint64(len(m.groups))
+
+	for {
+		g := &m.groups[groupIdx]
+		for i, ctrlByte := range g.ctrl {
+			if ctrlByte == h2 && g.keys[i] == key {
+				return g.vals[i], true
+			}
+			// Если встретили empty — значит дальше искать нет смысла (цепочка прервалась)
+			if ctrlByte == empty {
+				var zero V
+				return zero, false
+			}
+			// Если встретили deleted — игнорируем и продолжаем цикл!
+		}
+		groupIdx = (groupIdx + 1) % uint64(len(m.groups))
+	}
+}
+
+func (m *SwissMap[K, V]) Delete(key K) {
+	h1, h2 := m.hash(key)
+	groupIdx := h1 % uint64(len(m.groups))
+
+	for {
+		g := &m.groups[groupIdx]
+		for i, ctrlByte := range g.ctrl {
+			if ctrlByte == h2 && g.keys[i] == key {
+				g.ctrl[i] = deleted // Устанавливаем tombstone!
+				var zeroK K
+				var zeroV V
+				g.keys[i] = zeroK // Очищаем ссылки для Garbage Collector
+				g.vals[i] = zeroV
+				return
+			}
+			if ctrlByte == empty {
+				return // Ключа и так нет
+			}
+		}
+		groupIdx = (groupIdx + 1) % uint64(len(m.groups))
+	}
+}
+
+
+package main
+
+import (
+	"strconv"
+	"testing"
+)
+
+func TestSwissMap_Basic(t *testing.T) {
+	m := NewSwissMap[string, int](2)
+
+	m.Put("Go", 1)
+	m.Put("Rust", 2)
+
+	val, ok := m.Get("Go")
+	if !ok || val != 1 {
+		t.Errorf("Ожидали 1, получили %v", val)
+	}
+
+	val, ok = m.Get("Rust")
+	if !ok || val != 2 {
+		t.Errorf("Ожидали 2, получили %v", val)
+	}
+
+	_, ok = m.Get("Java")
+	if ok {
+		t.Errorf("Java не должна быть найдена")
+	}
+}
+
+func TestSwissMap_DeleteAndTombstones(t *testing.T) {
+	m := NewSwissMap[int, string](1) // 1 группа = 8 слотов
+
+	// Забиваем группу, чтобы вызвать коллизии и создать цепочку
+	for i := 0; i < 5; i++ {
+		m.Put(i, "val")
+	}
+
+	// Удаляем элемент из середины (создаем Tombstone)
+	m.Delete(2)
+
+	// Проверяем, что удаленный не находится
+	if _, ok := m.Get(2); ok {
+		t.Errorf("Ключ 2 должен быть удален")
+	}
+
+	// Проверяем, что элементы ПОСЛЕ удаленного всё ещё находятся
+	// (Если бы мы ставили empty вместо deleted, этот тест бы упал!)
+	if _, ok := m.Get(4); !ok {
+		t.Errorf("Ключ 4 должен находиться, несмотря на tombstone перед ним")
+	}
+
+	// Переиспользуем Tombstone
+	m.Put(99, "new_val")
+	if val, ok := m.Get(99); !ok || val != "new_val" {
+		t.Errorf("Ключ 99 должен был занять место tombstone")
+	}
+}
+
+func TestSwissMap_CollisionsAndResizing(t *testing.T) {
+	// Создаем маленькую мапу и кладем в нее много данных
+	m := NewSwissMap[string, int](2) // 16 слотов всего
+
+	for i := 0; i < 15; i++ {
+		m.Put("key"+strconv.Itoa(i), i)
+	}
+
+	for i := 0; i < 15; i++ {
+		val, ok := m.Get("key" + strconv.Itoa(i))
+		if !ok || val != i {
+			t.Errorf("Потеряли ключ key%d при коллизиях", i)
+		}
+	}
+}
