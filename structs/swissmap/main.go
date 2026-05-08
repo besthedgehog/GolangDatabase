@@ -107,6 +107,51 @@ func (m *SwissMap[K, V]) Put(key K, val V) {
 		// Если мы в группе 5: (5 + 1) % 8 = 6. (Перешли в 6-ю).
 		// Если мы в группе 7: (7 + 1) % 8 = 0.
 		// (Магия! Мы плавно телепортировались в самое начало парковки, в нулевую группу!).
-		groupIdx = (groupIdx + 1) % uint64(len(m.groups))
+		groupIdx = (groupIdx + 1) % uint64(len(m.groups)-1)
+	}
+}
+
+// Get возвращает значение по ключу
+func (m *SwissMap[K, V]) Get(key K) (V, bool) {
+	// Получим хеши по ключу
+	h1, h2 := m.hash(key)
+	groupIdx := h1 & (uint64(len(m.groups)) - 1)
+
+	for {
+		g := m.groups[groupIdx]
+		for i, ctrlByte := range g.ctrl {
+			if ctrlByte == h2 && g.keys[i] == key {
+				return g.vals[i], true
+			}
+			// Если встретили empty, дальше искать смысла нет
+			if ctrlByte == empty {
+				var zero V
+				return zero, false
+			}
+		}
+		// Если в этой группе нет, ищем в следующей
+		groupIdx = (groupIdx + 1) & (uint64(len(m.groups)) - 1)
+	}
+}
+
+func (m *SwissMap[K, V]) Delete(key K) {
+	h1, h2 := m.hash(key)
+	groupIdx := h1 & (uint64(len(m.groups)) - 1)
+
+	for {
+		g := &m.groups[groupIdx]
+		for i, ctrlByte := range g.ctrl {
+			if ctrlByte == h2 && g.keys[i] == key {
+				g.ctrl[i] = deleted
+				// Очищаем ссылки
+				g.keys[i] = *new(K)
+				g.vals[i] = *new(V)
+				return
+			}
+			if ctrlByte == empty {
+				return
+			}
+		}
+		groupIdx = (groupIdx + 1) & (uint64(len(m.groups)) - 1)
 	}
 }
